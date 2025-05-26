@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type products struct {
+type product struct {
 	productID         string
 	productName       string
 	manufacturer      string
@@ -18,11 +18,11 @@ type products struct {
 }
 
 // Products menu
-func ProductMenu(db *sql.DB) error {
+func Menu(db *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	commands := []string{
+	productCommands := []string{
 		"add",
 		"list",
 		"delete",
@@ -39,10 +39,10 @@ func ProductMenu(db *sql.DB) error {
 			fmt.Println(err)
 		}
 
-		if slices.Contains(commands, command) {
+		if slices.Contains(productCommands, command) {
 			switch command {
 			case "add":
-				var product products
+				var product product
 
 				fmt.Print("ID: ")
 				_, err := fmt.Scanln(&product.productID)
@@ -95,24 +95,33 @@ func ProductMenu(db *sql.DB) error {
 				defer rows.Close()
 
 				for rows.Next() {
-					var id string
-					var productName string
-					var manufacturer string
-					var pricePerUnit int
-					var pricePerPackaging int
-					var state bool
+					var product product
 
-					err = rows.Scan(&id, &productName, &manufacturer, &pricePerUnit, &pricePerPackaging, &state)
+					err = rows.Scan(
+						&product.productID,
+						&product.productName,
+						&product.manufacturer,
+						&product.pricePerUnit,
+						&product.pricePerPackaging,
+						&product.state,
+					)
 					if err != nil {
 						return fmt.Errorf("failed to scan rows: %w", err)
 					}
-					fmt.Printf("%s %s %s %d %d %t", id, productName, manufacturer, pricePerUnit, pricePerPackaging, state)
+					fmt.Printf(
+						"%s %s %s %d %d %t",
+						product.productID,
+						product.productName,
+						product.manufacturer, product.pricePerUnit,
+						product.pricePerPackaging,
+						product.state,
+					)
 				}
 
 			case "delete":
-				var id string
-				fmt.Print("id: ")
-				_, err := fmt.Scanln(&id)
+				var product_id string
+				fmt.Print("productID: ")
+				_, err := fmt.Scanln(&product_id)
 				if err != nil {
 					return err
 				}
@@ -122,7 +131,7 @@ func ProductMenu(db *sql.DB) error {
 					return fmt.Errorf("failed to disable product: %w", err)
 				}
 
-				result, err := stmt.ExecContext(ctx, false, id)
+				result, err := stmt.ExecContext(ctx, false, product_id)
 				if err != nil {
 					return fmt.Errorf("failed to execute query: %w", err)
 				}
@@ -134,9 +143,9 @@ func ProductMenu(db *sql.DB) error {
 				fmt.Printf("Disabled Product Successfully! rowsaffected=%d\n", affectedRows)
 
 			case "enable":
-				var id string
-				fmt.Print("id: ")
-				_, err := fmt.Scanln(&id)
+				var product_id string
+				fmt.Print("productID: ")
+				_, err := fmt.Scanln(&product_id)
 				if err != nil {
 					return err
 				}
@@ -146,7 +155,7 @@ func ProductMenu(db *sql.DB) error {
 					return fmt.Errorf("failed to disable product: %w", err)
 				}
 
-				result, err := stmt.ExecContext(ctx, true, id)
+				result, err := stmt.ExecContext(ctx, true, product_id)
 				if err != nil {
 					return fmt.Errorf("failed to execute query: %w", err)
 				}
@@ -157,15 +166,13 @@ func ProductMenu(db *sql.DB) error {
 
 				fmt.Printf("Enabled Product Successfully! rowsaffected=%d\n", affectedRows)
 			}
-		} else {
-			fmt.Println("Invalid Command!")
 		}
 	}
 	return nil
 }
 
 // function for adding a product into products table
-func (product *products) AddProduct(db *sql.DB) error {
+func (product *product) AddProduct(db *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

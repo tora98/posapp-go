@@ -20,7 +20,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	commands := []string{"--?", "--help", "sales", "products", "purchases", "exit", "quit"}
+	mainCommands := []string{"--?", "--help", "sales", "products", "purchases", "exit"}
 
 	var command string
 	for command != "exit" {
@@ -29,10 +29,8 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		if slices.Contains(commands, command) {
+		if slices.Contains(mainCommands, command) {
 			switch command {
-			case "":
-				help()
 			case "--?":
 				help()
 			case "--help":
@@ -40,15 +38,13 @@ func main() {
 			case "sales":
 				fmt.Println("Sales")
 			case "products":
-				err := products.ProductMenu(db)
+				err := products.Menu(db)
 				if err != nil {
 					fmt.Printf("Error: %v", err)
 				}
 			case "purchases":
 				fmt.Println("Purchases")
 			}
-		} else {
-			fmt.Println("Unknown Command!")
 		}
 	}
 }
