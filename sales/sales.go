@@ -9,7 +9,6 @@ import (
 )
 
 type sales struct {
-	id        int
 	date      string
 	productID string
 	quantity  int
@@ -41,43 +40,44 @@ func Menu(db *sql.DB) error {
 		if slices.Contains(salesCommands, command) {
 			switch command {
 			case "add":
-				var sales sales
-				sales.date = time.Now().Format("02, Jan 2006")
+				var sale sales
+				sale.date = time.Now().Format("02, Jan 2006")
 
 				fmt.Print("ID: ")
-				_, err := fmt.Scanln(&sales.productID)
+				_, err := fmt.Scanln(&sale.productID)
 				if err != nil {
 					return err
 				}
 				fmt.Print("Quantity: ")
-				_, err = fmt.Scanln(&sales.quantity)
+				_, err = fmt.Scanln(&sale.quantity)
 				if err != nil {
 					return err
 				}
 				fmt.Print("Price: ")
-				_, err = fmt.Scanln(&sales.price)
+				_, err = fmt.Scanln(&sale.price)
 				if err != nil {
 					return err
 				}
-				err = sales.addSales(db)
+				err = sale.AddSales(db)
 				if err != nil {
 					return err
 				}
 
 			case "delete":
-				var product_id string
+				var sale_id int
 				fmt.Print("id: ")
-				_, err := fmt.Scanln(&product_id)
+				_, err := fmt.Scanln(&sale_id)
 				if err != nil {
 					return err
 				}
 
-				stmt, err := db.PrepareContext(ctx, "DELETE FROM sales WHERE date = ?, product_id = ?")
+				stmt, err := db.PrepareContext(ctx, "DELETE FROM sales WHERE date = ?, sale_id = ?")
 				if err != nil {
 					return fmt.Errorf("failed to delete sale: %w", err)
 				}
+				defer stmt.Close()
 
-				result, err := stmt.ExecContext(ctx, time.Now().Format("02, Jan 2006"), product_id)
+				result, err := stmt.ExecContext(ctx, time.Now().Format("02, Jan 2006"), sale_id)
 				if err != nil {
 					return fmt.Errorf("failed to execute query: %w", err)
 				}
@@ -95,6 +95,7 @@ func Menu(db *sql.DB) error {
 				if err != nil {
 					return fmt.Errorf("failed to prepare query: %w", err)
 				}
+				defer stmt.Close()
 
 				rows, err := stmt.QueryContext(ctx, time.Now().Format("02, Jan 2006"))
 				if err != nil {
@@ -103,9 +104,11 @@ func Menu(db *sql.DB) error {
 				defer rows.Close()
 
 				for rows.Next() {
+					var sale_id int
 					var sale sales
 
 					err = rows.Scan(
+						&sale_id,
 						&sale.date,
 						&sale.productID,
 						&sale.quantity,
@@ -115,7 +118,8 @@ func Menu(db *sql.DB) error {
 						return fmt.Errorf("failed to scan rows: %w", err)
 					}
 					fmt.Printf(
-						"%s %s %d %d",
+						"%d %s %s %d %d",
+						sale_id,
 						sale.date,
 						sale.productID,
 						sale.quantity,
@@ -129,6 +133,7 @@ func Menu(db *sql.DB) error {
 				if err != nil {
 					return fmt.Errorf("failed to prepare query: %w", err)
 				}
+				defer stmt.Close()
 
 				rows, err := stmt.QueryContext(ctx)
 				if err != nil {
@@ -137,9 +142,11 @@ func Menu(db *sql.DB) error {
 				defer rows.Close()
 
 				for rows.Next() {
+					var sale_id int
 					var sale sales
 
 					err = rows.Scan(
+						&sale_id,
 						&sale.date,
 						&sale.productID,
 						&sale.quantity,
@@ -149,7 +156,8 @@ func Menu(db *sql.DB) error {
 						return fmt.Errorf("failed to scan rows: %w", err)
 					}
 					fmt.Printf(
-						"%s %s %d %d",
+						"%d %s %s %d %d",
+						sale_id,
 						sale.date,
 						sale.productID,
 						sale.quantity,
@@ -164,7 +172,7 @@ func Menu(db *sql.DB) error {
 }
 
 // funtion for adding daily sales
-func (sale *sales) addSales(db *sql.DB) error {
+func (sale *sales) AddSales(db *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -177,6 +185,7 @@ func (sale *sales) addSales(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to prepare query statement: %w", err)
 	}
+	defer stmt.Close()
 
 	result, err := stmt.ExecContext(
 		ctx,

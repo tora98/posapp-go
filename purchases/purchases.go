@@ -46,7 +46,7 @@ func Menu(db *sql.DB) error {
 				var purchase purchases
 				purchase.date = time.Now().Format("02, Jan 2006")
 
-				fmt.Print("ID: ")
+				fmt.Print("Product ID: ")
 				_, err := fmt.Scanln(&purchase.productID)
 				if err != nil {
 					return err
@@ -76,25 +76,26 @@ func Menu(db *sql.DB) error {
 				if err != nil {
 					return err
 				}
-				err = sales.addSales(db)
+				err = purchase.AddPurchase(db)
 				if err != nil {
 					return err
 				}
 
 			case "delete":
-				var product_id string
+				var purchase_id int
 				fmt.Print("id: ")
-				_, err := fmt.Scanln(&product_id)
+				_, err := fmt.Scanln(&purchase_id)
 				if err != nil {
 					return err
 				}
 
-				stmt, err := db.PrepareContext(ctx, "DELETE FROM purchases WHERE date = ?, product_id = ?")
+				stmt, err := db.PrepareContext(ctx, "DELETE FROM purchases WHERE date = ?, purchase_id = ?")
 				if err != nil {
 					return fmt.Errorf("failed to delete sale: %w", err)
 				}
+				defer stmt.Close()
 
-				result, err := stmt.ExecContext(ctx, time.Now().Format("02, Jan 2006"), product_id)
+				result, err := stmt.ExecContext(ctx, time.Now().Format("02, Jan 2006"), purchase_id)
 				if err != nil {
 					return fmt.Errorf("failed to execute query: %w", err)
 				}
@@ -108,10 +109,11 @@ func Menu(db *sql.DB) error {
 			case "list":
 				fmt.Println("=============================================================")
 
-				stmt, err := db.PrepareContext(ctx, "SELECT * FROM sales WHERE date = ?")
+				stmt, err := db.PrepareContext(ctx, "SELECT * FROM purchases WHERE date = ?")
 				if err != nil {
 					return fmt.Errorf("failed to prepare query: %w", err)
 				}
+				defer stmt.Close()
 
 				rows, err := stmt.QueryContext(ctx, time.Now().Format("02, Jan 2006"))
 				if err != nil {
@@ -120,32 +122,42 @@ func Menu(db *sql.DB) error {
 				defer rows.Close()
 
 				for rows.Next() {
-					var sale sales
+					var purchase_id int
+					var purchase purchases
 
 					err = rows.Scan(
-						&sale.date,
-						&sale.productID,
-						&sale.quantity,
-						&sale.price,
+						&purchase_id,
+						&purchase.date,
+						&purchase.productID,
+						&purchase.productName,
+						&purchase.manufacturer,
+						&purchase.quantity,
+						&purchase.price,
+						&purchase.supplier,
 					)
 					if err != nil {
 						return fmt.Errorf("failed to scan rows: %w", err)
 					}
 					fmt.Printf(
-						"%s %s %d %d",
-						sale.date,
-						sale.productID,
-						sale.quantity,
-						sale.price,
+						"%d %s %s %s %s %d %d %s",
+						purchase_id,
+						purchase.date,
+						purchase.productID,
+						purchase.productName,
+						purchase.manufacturer,
+						purchase.quantity,
+						purchase.price,
+						purchase.supplier,
 					)
 				}
 			case "listAll":
 				fmt.Println("=============================================================")
 
-				stmt, err := db.PrepareContext(ctx, "SELECT * FROM sales")
+				stmt, err := db.PrepareContext(ctx, "SELECT * FROM purchases")
 				if err != nil {
 					return fmt.Errorf("failed to prepare query: %w", err)
 				}
+				defer stmt.Close()
 
 				rows, err := stmt.QueryContext(ctx)
 				if err != nil {
@@ -154,23 +166,32 @@ func Menu(db *sql.DB) error {
 				defer rows.Close()
 
 				for rows.Next() {
-					var sale sales
+					var purchase_id int
+					var purchase purchases
 
 					err = rows.Scan(
-						&sale.date,
-						&sale.productID,
-						&sale.quantity,
-						&sale.price,
+						&purchase_id,
+						&purchase.date,
+						&purchase.productID,
+						&purchase.productName,
+						&purchase.manufacturer,
+						&purchase.quantity,
+						&purchase.price,
+						&purchase.supplier,
 					)
 					if err != nil {
 						return fmt.Errorf("failed to scan rows: %w", err)
 					}
 					fmt.Printf(
-						"%s %s %d %d",
-						sale.date,
-						sale.productID,
-						sale.quantity,
-						sale.price,
+						"%d %s %s %s %s %d %d %s",
+						purchase_id,
+						purchase.date,
+						purchase.productID,
+						purchase.productName,
+						purchase.manufacturer,
+						purchase.quantity,
+						purchase.price,
+						purchase.supplier,
 					)
 				}
 			}

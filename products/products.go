@@ -75,6 +75,15 @@ func Menu(db *sql.DB) error {
 					return err
 				}
 
+				result, err := product.checkExists(db)
+				if err != nil {
+					return err
+				}
+				if result {
+					fmt.Println("Product already exists")
+					command = "add"
+				}
+
 				err = product.AddProduct(db)
 				if err != nil {
 					return err
@@ -215,4 +224,28 @@ func (product *product) AddProduct(db *sql.DB) error {
 
 	fmt.Printf("Product Saved Successfully! id=%d, rowsaffected=%d\n", id, rowsAffected)
 	return nil
+}
+
+func (product *product) checkExists(db *sql.DB) (bool, error) {
+	ctx, calcel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer calcel()
+
+	stmt, err := db.PrepareContext(ctx, "SELECT product_id FROM products WHERE product_id = ?")
+	if err != nil {
+		return false, fmt.Errorf("failed to prepare query: %w", err)
+	}
+	defer stmt.Close()
+
+	row := stmt.QueryRowContext(ctx, product.productID)
+
+	var productID string
+	err = row.Scan(&productID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to scan row: %w", err)
+	}
+
+	return true, nil
 }
