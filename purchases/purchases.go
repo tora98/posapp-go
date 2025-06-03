@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
+
+	"github.com/tora98/posapp-go/utils"
 )
 
 type purchases struct {
@@ -33,12 +36,11 @@ func Menu(db *sql.DB) error {
 
 	var command string
 	for command != "quit" {
-		fmt.Print("/purchases >")
-
-		_, err := fmt.Scanln(&command)
-		if err != nil {
-			fmt.Println(err)
+		result := utils.GetInput("/purchases >")
+		if result == "" {
+			fmt.Println("Please Enter a Command!")
 		}
+		command = result
 
 		if slices.Contains(purchasesCommands, command) {
 			switch command {
@@ -46,36 +48,45 @@ func Menu(db *sql.DB) error {
 				var purchase purchases
 				purchase.date = time.Now().Format("02, Jan 2006")
 
-				fmt.Print("Product ID: ")
-				_, err := fmt.Scanln(&purchase.productID)
+				result := utils.GetInput("Purchase ID :")
+				if result == "" {
+					fmt.Println("Please Enter ID!")
+					break
+				}
+				purchase.productID = result
+
+				result = utils.GetInput("Product Name :")
+				if result == "" {
+					fmt.Println("Please Enter Product Name!")
+					break
+				}
+				purchase.productName = result
+
+				result = utils.GetInput("Manufacturer :")
+				if result == "" {
+					fmt.Println("Please Enter Manufacturer!")
+					break
+				}
+				purchase.manufacturer = result
+
+				result = utils.GetInput("Price Per Unit :")
+				if result == "" {
+					fmt.Println("Please Enter a Price per Unit!")
+					break
+				}
+				var err error
+				purchase.price, err = strconv.Atoi(result)
 				if err != nil {
 					return err
 				}
-				fmt.Print("Quantity: ")
-				_, err = fmt.Scanln(&purchase.productName)
-				if err != nil {
-					return err
+
+				result = utils.GetInput("Supplier :")
+				if result == "" {
+					fmt.Println("Please Enter a Supplier Name!")
+					break
 				}
-				fmt.Print("Price: ")
-				_, err = fmt.Scanln(&purchase.manufacturer)
-				if err != nil {
-					return err
-				}
-				fmt.Print("Price: ")
-				_, err = fmt.Scanln(&purchase.quantity)
-				if err != nil {
-					return err
-				}
-				fmt.Print("Price: ")
-				_, err = fmt.Scanln(&purchase.price)
-				if err != nil {
-					return err
-				}
-				fmt.Print("Price: ")
-				_, err = fmt.Scanln(&purchase.supplier)
-				if err != nil {
-					return err
-				}
+				purchase.supplier = result
+
 				err = purchase.AddPurchase(db)
 				if err != nil {
 					return err
@@ -83,8 +94,12 @@ func Menu(db *sql.DB) error {
 
 			case "delete":
 				var purchase_id int
-				fmt.Print("id: ")
-				_, err := fmt.Scanln(&purchase_id)
+				result = utils.GetInput("Id :")
+				if result == "" {
+					fmt.Println("Invalid Id!")
+					break
+				}
+				purchase_id, err := strconv.Atoi(result)
 				if err != nil {
 					return err
 				}
@@ -104,7 +119,7 @@ func Menu(db *sql.DB) error {
 					return fmt.Errorf("failed to query rows affected: %w", err)
 				}
 
-				fmt.Printf("Disabled Product Successfully! rowsaffected=%d\n", affectedRows)
+				fmt.Printf("Disabled purchase Successfully! rowsaffected=%d\n", affectedRows)
 
 			case "list":
 				fmt.Println("=============================================================")
@@ -208,8 +223,8 @@ func (purchase *purchases) AddPurchase(db *sql.DB) error {
 
 	stmt, err := db.PrepareContext(ctx, `INSERT INTO purchases(
 		date,
-		product_id,
-		product_nameame,
+		purchase_id,
+		purchase_nameame,
 		manufacturer,
 		quantity,
 		price,

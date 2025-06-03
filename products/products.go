@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
+
+	"github.com/tora98/posapp-go/utils"
 )
 
 type product struct {
@@ -31,57 +34,71 @@ func Menu(db *sql.DB) error {
 	}
 
 	var command string
-	for command != "quit" {
-		fmt.Print("/products >")
 
-		_, err := fmt.Scanln(&command)
-		if err != nil {
-			fmt.Println(err)
+	for command != "quit" {
+		result := utils.GetInput("/products >")
+		if result == "" {
+			fmt.Println("Please Enter a Command!")
 		}
+		command = result
 
 		if slices.Contains(productCommands, command) {
 			switch command {
 			case "add":
 				var product product
+				product.state = true
 
-				fmt.Print("ID: ")
-				_, err := fmt.Scanln(&product.productID)
-				if err != nil {
-					return err
+				result := utils.GetInput("ID :")
+				if result == "" {
+					fmt.Println("Please Enter ID!")
+					break
 				}
-				fmt.Print("Product Name: ")
-				_, err = fmt.Scanln(&product.productName)
-				if err != nil {
-					return err
+				product.productID = result
+
+				result = utils.GetInput("Product Name :")
+				if result == "" {
+					fmt.Println("Please Enter Product Name!")
+					break
 				}
-				fmt.Print("Manufacturer: ")
-				_, err = fmt.Scanln(&product.manufacturer)
-				if err != nil {
-					return err
+				product.productName = result
+
+				result = utils.GetInput("Manufacturer :")
+				if result == "" {
+					fmt.Println("Please Enter Manufacturer!")
+					break
 				}
-				fmt.Print("Price Per Unit: ")
-				_, err = fmt.Scanln(&product.pricePerUnit)
-				if err != nil {
-					return err
+				product.manufacturer = result
+
+				result = utils.GetInput("Price Per Unit :")
+				if result == "" {
+					fmt.Println("Please Enter a Price per Unit!")
+					break
 				}
-				fmt.Print("Price Per Packaging: ")
-				_, err = fmt.Scanln(&product.pricePerPackaging)
+				var err error
+				product.pricePerUnit, err = strconv.Atoi(result)
 				if err != nil {
-					return err
-				}
-				fmt.Print("State: ")
-				_, err = fmt.Scanln(&product.state)
-				if err != nil {
-					return err
+					fmt.Println("Please Enter a Valid Price!")
+					break
 				}
 
-				result, err := product.checkExists(db)
+				result = utils.GetInput("Price Per Packaging :")
+				if result == "" {
+					fmt.Println("Please Enter a Price per Packaging!")
+					break
+				}
+				product.pricePerPackaging, err = strconv.Atoi(result)
+				if err != nil {
+					fmt.Println("Please Enter a Valid Price!")
+					break
+				}
+
+				check, err := product.checkExists(db)
 				if err != nil {
 					return err
 				}
-				if result {
+				if check {
 					fmt.Println("Product already exists")
-					command = "add"
+					command = "add" // go back to add command :-|
 				}
 
 				err = product.AddProduct(db)
@@ -129,11 +146,12 @@ func Menu(db *sql.DB) error {
 
 			case "delete":
 				var product_id string
-				fmt.Print("productID: ")
-				_, err := fmt.Scanln(&product_id)
-				if err != nil {
-					return err
+				result = utils.GetInput("ID: ")
+				if result == "" {
+					fmt.Println("Invalid ID!")
+					break
 				}
+				product_id = result
 
 				stmt, err := db.PrepareContext(ctx, "UPDATE products SET state = ? WHERE product_id = ?")
 				if err != nil {
@@ -153,11 +171,12 @@ func Menu(db *sql.DB) error {
 
 			case "enable":
 				var product_id string
-				fmt.Print("productID: ")
-				_, err := fmt.Scanln(&product_id)
-				if err != nil {
-					return err
+				result = utils.GetInput("ID: ")
+				if result == "" {
+					fmt.Println("Invalid ID!")
+					break
 				}
+				product_id = result
 
 				stmt, err := db.PrepareContext(ctx, "UPDATE products SET state = ? WHERE product_id = ?")
 				if err != nil {
@@ -175,6 +194,8 @@ func Menu(db *sql.DB) error {
 
 				fmt.Printf("Enabled Product Successfully! rowsaffected=%d\n", affectedRows)
 			}
+		} else {
+			fmt.Println("Not a Valid Command!")
 		}
 	}
 	return nil

@@ -3,9 +3,13 @@ package sales
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
+
+	"github.com/tora98/posapp-go/utils"
 )
 
 type sales struct {
@@ -30,12 +34,11 @@ func Menu(db *sql.DB) error {
 
 	var command string
 	for command != "quit" {
-		fmt.Print("/sales >")
-
-		_, err := fmt.Scanln(&command)
-		if err != nil {
-			fmt.Println(err)
+		result := utils.GetInput("/sales >")
+		if result == "" {
+			fmt.Println("Please Enter a Command!")
 		}
+		command = result
 
 		if slices.Contains(salesCommands, command) {
 			switch command {
@@ -43,21 +46,32 @@ func Menu(db *sql.DB) error {
 				var sale sales
 				sale.date = time.Now().Format("02, Jan 2006")
 
-				fmt.Print("ID: ")
-				_, err := fmt.Scanln(&sale.productID)
-				if err != nil {
-					return err
+				result := utils.GetInput("ID: ")
+				if result == "" {
+					fmt.Println("Please Enter Product ID :")
+					break
 				}
-				fmt.Print("Quantity: ")
-				_, err = fmt.Scanln(&sale.quantity)
-				if err != nil {
-					return err
+				sale.productID = result
+
+				result = utils.GetInput("Quantity: ")
+				if result == "" {
+					fmt.Println("Please Enter Quantity :")
+					break
 				}
-				fmt.Print("Price: ")
-				_, err = fmt.Scanln(&sale.price)
-				if err != nil {
-					return err
+				sale.productID = result
+
+				result = utils.GetInput("Price: ")
+				if result == "" {
+					fmt.Println("Please Enter Price :")
+					break
 				}
+				sale.productID = result
+
+				err := sale.valueCheck()
+				if err != nil {
+					command = "add"
+				}
+
 				err = sale.AddSales(db)
 				if err != nil {
 					return err
@@ -65,8 +79,12 @@ func Menu(db *sql.DB) error {
 
 			case "delete":
 				var sale_id int
-				fmt.Print("id: ")
-				_, err := fmt.Scanln(&sale_id)
+				result = utils.GetInput("Id :")
+				if result == "" {
+					fmt.Println("Invalid Id!")
+					break
+				}
+				sale_id, err := strconv.Atoi(result)
 				if err != nil {
 					return err
 				}
@@ -169,6 +187,20 @@ func Menu(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+// zero value check for sales struct
+func (s *sales) valueCheck() error {
+	switch {
+	case s.productID == "":
+		return errors.New("empty product id")
+	case s.quantity == 0:
+		return errors.New("empty quantity")
+	case s.price == 0:
+		return errors.New("empty price")
+	default:
+		return nil
+	}
 }
 
 // funtion for adding daily sales

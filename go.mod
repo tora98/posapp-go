@@ -1,5 +1,5 @@
-module posapp-go
+module github.com/tora98/posapp-go
 
-go 1.22.2
+go 1.24.3
 
 require github.com/mattn/go-sqlite3 v1.14.28
